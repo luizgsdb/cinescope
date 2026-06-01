@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  getTrending,
+  getPopular,
   searchMovies,
   getGenres,
   discoverByGenre,
@@ -15,6 +15,7 @@ import FavoritesView from './components/FavoritesView.jsx'
 import Loader from './components/Loader.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import ApiKeyNotice from './components/ApiKeyNotice.jsx'
+import Pagination from './components/Pagination.jsx'
 import Footer from './components/Footer.jsx'
 
 export default function App() {
@@ -23,6 +24,8 @@ export default function App() {
   const [activeGenre, setActiveGenre] = useState(null)
   const [genres, setGenres] = useState([])
   const [movies, setMovies] = useState([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -33,32 +36,39 @@ export default function App() {
     getGenres().then(setGenres).catch(() => setGenres([]))
   }, [])
 
-  // Resolve qual conjunto de filmes carregar conforme busca / gênero / tendências.
+  // Resolve qual conjunto de filmes carregar conforme busca / gênero / catálogo.
   const loadMovies = useCallback(async () => {
     if (!hasApiKey) return
     setLoading(true)
     setError(false)
     try {
-      let results
+      let data
       if (query) {
-        results = await searchMovies(query) // RF01
+        data = await searchMovies(query, page) // RF01
       } else if (activeGenre) {
-        results = await discoverByGenre(activeGenre) // RF05
+        data = await discoverByGenre(activeGenre, page) // RF05
       } else {
-        results = await getTrending() // RF02
+        data = await getPopular(page) // RF02 — "Todos": catálogo geral de populares
       }
-      setMovies(results)
+      setMovies(data.results)
+      setTotalPages(data.totalPages)
     } catch {
       setError(true)
       setMovies([])
+      setTotalPages(1)
     } finally {
       setLoading(false)
     }
-  }, [query, activeGenre])
+  }, [query, activeGenre, page])
 
   useEffect(() => {
     loadMovies()
   }, [loadMovies])
+
+  // Sempre que mudar a busca ou o gênero, volta para a primeira página.
+  useEffect(() => {
+    setPage(1)
+  }, [query, activeGenre])
 
   // Ao pesquisar, limpa o filtro de gênero para evitar combinações confusas.
   const handleSearch = useCallback((value) => {
@@ -71,13 +81,19 @@ export default function App() {
     setQuery('')
   }
 
+  // Troca de página e rola a tela para o topo do catálogo.
+  const handleChangePage = (next) => {
+    setPage(next)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const goExplore = () => setView('home')
 
   const sectionTitle = query
     ? `Resultados para "${query}"`
     : activeGenre
       ? genres.find((g) => g.id === activeGenre)?.name || 'Catálogo'
-      : 'Em alta esta semana'
+      : 'Catálogo de filmes populares'
 
   return (
     <div className="min-h-screen">
@@ -134,7 +150,11 @@ export default function App() {
                 subtitle="Tente outro termo de busca ou selecione um gênero diferente."
               />
             ) : (
-              <MovieGrid movies={movies} onOpen={setSelected} />
+              <>
+                <MovieGrid movies={movies} onOpen={setSelected} />
+                {/* Navegação entre as páginas do catálogo */}
+                <Pagination page={page} totalPages={totalPages} onChange={handleChangePage} />
+              </>
             )}
           </>
         )}
