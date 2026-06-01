@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-night-900 text-slate-100 antialiased;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .text-shadow {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* SweetAlert2 — tema escuro alinhado ao app */
+.swal2-popup.swal-cinescope {
+  background: #16161f;
+  color: #e2e8f0;
+  border: 1px solid rgba(51, 161, 255, 0.25);
+  border-radius: 1rem;
+}
